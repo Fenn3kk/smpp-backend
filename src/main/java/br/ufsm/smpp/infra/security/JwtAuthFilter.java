@@ -31,6 +31,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
+        System.out.println("JwtAuthFilter chamado");
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -41,8 +43,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (usuario != null) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
-                                usuario, null, List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getTipoUsuario()))
+                                usuario,
+                                null,
+                                List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getTipoUsuario()))
                         );
+
+                // FALTAVA ESSA LINHA:
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 

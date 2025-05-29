@@ -1,9 +1,12 @@
 package br.ufsm.smpp.controller;
 
 import br.ufsm.smpp.model.propriedade.Propriedade;
+import br.ufsm.smpp.model.propriedade.PropriedadeDTO;
 import br.ufsm.smpp.service.PropriedadeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +20,8 @@ public class PropriedadeController {
     private final PropriedadeService propriedadeService;
 
     @GetMapping
-    public List<Propriedade> listarTodas() {
-        return propriedadeService.listarTodas();
+    public List<Propriedade> listarDoUsuario(@AuthenticationPrincipal(expression = "id") UUID usuarioId) {
+        return propriedadeService.listarPorUsuario(usuarioId);
     }
 
     @GetMapping("/{id}")
@@ -27,13 +30,17 @@ public class PropriedadeController {
     }
 
     @PostMapping
-    public ResponseEntity<Propriedade> salvar(@RequestBody Propriedade propriedade) {
-        return ResponseEntity.ok(propriedadeService.salvar(propriedade));
+    public ResponseEntity<?> salvar(@RequestBody PropriedadeDTO dto) {
+        Propriedade propriedade = propriedadeService.fromDTO(dto);
+        Propriedade salva = propriedadeService.salvar(propriedade);
+        return ResponseEntity.status(HttpStatus.CREATED).body(salva);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Propriedade> atualizar(@PathVariable UUID id, @RequestBody Propriedade propriedade) {
-        return ResponseEntity.ok(propriedadeService.atualizar(id, propriedade));
+    public ResponseEntity<?> atualizar(@PathVariable UUID id, @RequestBody PropriedadeDTO dto) {
+        Propriedade propriedade = propriedadeService.fromDTO(dto);
+        Propriedade atualizada = propriedadeService.atualizar(id, propriedade);
+        return ResponseEntity.ok(atualizada);
     }
 
     @DeleteMapping("/{id}")

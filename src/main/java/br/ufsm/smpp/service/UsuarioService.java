@@ -46,13 +46,21 @@ public class UsuarioService {
 
     public Usuario atualizar(UUID id, Usuario usuarioAtualizado) {
         Usuario existente = buscarPorId(id);
+
         existente.setNome(usuarioAtualizado.getNome());
         existente.setEmail(usuarioAtualizado.getEmail());
         existente.setTelefone(usuarioAtualizado.getTelefone());
-        existente.setSenha(usuarioAtualizado.getSenha());
         existente.setTipoUsuario(usuarioAtualizado.getTipoUsuario());
+
+        // Atualiza senha só se ela não for nula ou vazia
+        if (usuarioAtualizado.getSenha() != null && !usuarioAtualizado.getSenha().isEmpty()) {
+            existente.setSenha(passwordEncoder.encode(usuarioAtualizado.getSenha()));
+        }
+        // Se senha não vier ou for vazia, mantém a senha atual
+
         return usuarioRepository.save(existente);
     }
+
 
     public void deletar(UUID id) {
         Usuario usuario = buscarPorId(id);

@@ -1,4 +1,3 @@
-
 CREATE TABLE Usuario (
                          id UUID PRIMARY KEY DEFAULT,
                          nome TEXT NOT NULL,

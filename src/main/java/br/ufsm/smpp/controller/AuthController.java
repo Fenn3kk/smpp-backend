@@ -31,13 +31,17 @@ public class AuthController {
         Optional<Usuario> usuarioOpt = authService.autenticar(request.getEmail(), request.getSenha());
 
         if (usuarioOpt.isPresent()) {
-            String token = jwtUtil.gerarToken(request.getEmail());
-            return ResponseEntity.ok(new JwtResponse(token)); // Aqui funciona
+            Usuario usuario = usuarioOpt.get();
+            String token = jwtUtil.gerarToken(usuario.getEmail());
+            return ResponseEntity.ok(new JwtLoginResponse(
+                    token,
+                    usuario.getId().toString(),
+                    usuario.getTipoUsuario().toString() // ✅ envia tipoUsuario
+            ));
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
     }
-
 
     @PostMapping("/cadastro")
     public ResponseEntity<?> cadastrar(@RequestBody Usuario usuario) {
@@ -61,5 +65,13 @@ public class AuthController {
     @AllArgsConstructor
     public static class JwtResponse {
         private String token;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class JwtLoginResponse {
+        private String token;
+        private String usuarioId;
+        private String tipoUsuario; // ✅ novo campo
     }
 }
