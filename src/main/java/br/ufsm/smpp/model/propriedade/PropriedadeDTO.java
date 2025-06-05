@@ -5,10 +5,10 @@ import java.util.UUID;
 
 public class PropriedadeDTO {
     public String nome;
-    public String cidade;
+    public UUID cidade;                   // Referência à cidade pela UUID
     public String coordenadas;
     public String proprietario;
     public String telefoneProprietario;
-    public List<UUID> atividades;
-    public List<UUID> vulnerabilidades;
+    public List<UUID> atividades;           // IDs das atividades
+    public List<UUID> vulnerabilidades;    // IDs das vulnerabilidades
 }

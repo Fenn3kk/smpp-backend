@@ -2,6 +2,7 @@ package br.ufsm.smpp.controller;
 
 import br.ufsm.smpp.model.propriedade.Propriedade;
 import br.ufsm.smpp.model.propriedade.PropriedadeDTO;
+import br.ufsm.smpp.model.usuario.Usuario;
 import br.ufsm.smpp.service.PropriedadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,15 +31,15 @@ public class PropriedadeController {
     }
 
     @PostMapping
-    public ResponseEntity<?> salvar(@RequestBody PropriedadeDTO dto) {
-        Propriedade propriedade = propriedadeService.fromDTO(dto);
+    public ResponseEntity<?> salvar(@RequestBody PropriedadeDTO dto, @AuthenticationPrincipal Usuario usuario) {
+        Propriedade propriedade = propriedadeService.fromDTO(dto, usuario);
         Propriedade salva = propriedadeService.salvar(propriedade);
         return ResponseEntity.status(HttpStatus.CREATED).body(salva);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> atualizar(@PathVariable UUID id, @RequestBody PropriedadeDTO dto) {
-        Propriedade propriedade = propriedadeService.fromDTO(dto);
+    public ResponseEntity<?> atualizar(@PathVariable UUID id, @RequestBody PropriedadeDTO dto, @AuthenticationPrincipal Usuario usuario) {
+        Propriedade propriedade = propriedadeService.fromDTO(dto, usuario);
         Propriedade atualizada = propriedadeService.atualizar(id, propriedade);
         return ResponseEntity.ok(atualizada);
     }

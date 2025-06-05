@@ -46,9 +46,8 @@ public class Usuario {
     @NotNull
     private String senha;
 
+    @NonNull
+    @NotNull
     @Enumerated(EnumType.STRING)
     private TipoUsuario tipoUsuario;
-
-    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Propriedade> propriedades;
 }

@@ -1,5 +1,6 @@
 package br.ufsm.smpp.model.propriedade;
 import br.ufsm.smpp.model.atividade.Atividade;
+import br.ufsm.smpp.model.cidade.Cidade;
 import br.ufsm.smpp.model.usuario.Usuario;
 import br.ufsm.smpp.model.vulnerabilidade.Vulnerabilidade;
 import jakarta.persistence.*;
@@ -29,10 +30,11 @@ public class Propriedade {
     @NotNull
     private String nome;
 
-    @Column(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "cidade_id", nullable = false)
     @NonNull
     @NotNull
-    private String cidade;
+    private Cidade cidade;
 
     @Column(nullable = false)
     @NonNull
@@ -49,10 +51,14 @@ public class Propriedade {
     @NotNull
     private String telefoneProprietario;
 
+    @NonNull
+    @NotNull
     @ManyToOne
-    @JoinColumn(name = "usuario_id")
+    @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @NonNull
+    @NotNull
     @ManyToMany
     @JoinTable(
             name = "propriedade_atividade",

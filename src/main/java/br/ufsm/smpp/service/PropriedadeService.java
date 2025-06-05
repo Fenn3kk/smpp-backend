@@ -1,5 +1,6 @@
 package br.ufsm.smpp.service;
 
+import br.ufsm.smpp.model.cidade.Cidade;
 import br.ufsm.smpp.model.propriedade.Propriedade;
 import br.ufsm.smpp.model.propriedade.PropriedadeDTO;
 import br.ufsm.smpp.model.propriedade.PropriedadeRepository;
@@ -7,11 +8,10 @@ import br.ufsm.smpp.model.usuario.Usuario;
 import br.ufsm.smpp.model.vulnerabilidade.Vulnerabilidade;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 import br.ufsm.smpp.model.atividade.Atividade;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +24,8 @@ public class PropriedadeService {
     private final PropriedadeRepository propriedadeRepository;
     private final AtividadeService atividadeService; // para buscar por UUID
     private final VulnerabilidadeService vulnerabilidadeService;
+    private final CidadeService cidadeService;
+    private final UsuarioService usuarioService;
 
     public List<Propriedade> listarPorUsuario(UUID usuarioId) {
         return propriedadeRepository.findByUsuarioId(usuarioId);
@@ -44,25 +46,34 @@ public class PropriedadeService {
             if (auth != null && auth.getPrincipal() instanceof Usuario usuario) {
                 propriedade.setProprietario(usuario.getNome());
                 propriedade.setTelefoneProprietario(usuario.getTelefone());
+                propriedade.setUsuario(usuario);
             }
         }
 
         return propriedadeRepository.save(propriedade);
     }
 
-    public Propriedade fromDTO(PropriedadeDTO dto) {
+    public Propriedade fromDTO(PropriedadeDTO dto, Usuario usuario) {
         Propriedade propriedade = new Propriedade();
+
         propriedade.setNome(dto.nome);
-        propriedade.setCidade(dto.cidade);
+
+        Cidade cidade = cidadeService.buscarPorId(dto.cidade);
+        propriedade.setCidade(cidade);
+
         propriedade.setCoordenadas(dto.coordenadas);
         propriedade.setProprietario(dto.proprietario);
         propriedade.setTelefoneProprietario(dto.telefoneProprietario);
 
+        propriedade.setUsuario(usuario);
+
+        // Buscar Atividades pela lista de UUIDs
         List<Atividade> atividades = dto.atividades.stream()
                 .map(atividadeService::buscarPorId)
                 .collect(Collectors.toList());
         propriedade.setAtividades(atividades);
 
+        // Buscar Vulnerabilidades pela lista de UUIDs
         List<Vulnerabilidade> vulnerabilidades = dto.vulnerabilidades.stream()
                 .map(vulnerabilidadeService::buscarPorId)
                 .collect(Collectors.toList());

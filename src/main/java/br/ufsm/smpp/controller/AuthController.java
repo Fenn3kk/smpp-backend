@@ -28,6 +28,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+
         Optional<Usuario> usuarioOpt = authService.autenticar(request.getEmail(), request.getSenha());
 
         if (usuarioOpt.isPresent()) {

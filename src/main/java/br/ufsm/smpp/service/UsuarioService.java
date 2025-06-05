@@ -40,6 +40,7 @@ public class UsuarioService {
         }
 
         usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
+
         return usuarioRepository.save(usuario);
     }
 
@@ -50,16 +51,25 @@ public class UsuarioService {
         existente.setNome(usuarioAtualizado.getNome());
         existente.setEmail(usuarioAtualizado.getEmail());
         existente.setTelefone(usuarioAtualizado.getTelefone());
-        existente.setTipoUsuario(usuarioAtualizado.getTipoUsuario());
 
-        // Atualiza senha só se ela não for nula ou vazia
-        if (usuarioAtualizado.getSenha() != null && !usuarioAtualizado.getSenha().isEmpty()) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.isAuthenticated() &&
+                auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // Só permite alterar o tipoUsuario se o logado for admin
+        if (isAdmin) {
+            existente.setTipoUsuario(usuarioAtualizado.getTipoUsuario());
+        }
+
+        if (usuarioAtualizado.getSenha() != null &&
+                !usuarioAtualizado.getSenha().isEmpty() &&
+                !passwordEncoder.matches(usuarioAtualizado.getSenha(), existente.getSenha())) {
             existente.setSenha(passwordEncoder.encode(usuarioAtualizado.getSenha()));
         }
-        // Se senha não vier ou for vazia, mantém a senha atual
 
         return usuarioRepository.save(existente);
     }
+
 
 
     public void deletar(UUID id) {

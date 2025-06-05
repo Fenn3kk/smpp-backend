@@ -1,10 +1,15 @@
 CREATE TABLE Usuario (
-                         id UUID PRIMARY KEY DEFAULT,
+                         id UUID PRIMARY KEY,
                          nome TEXT NOT NULL,
                          email TEXT NOT NULL UNIQUE,
                          telefone TEXT NOT NULL,
                          senha TEXT NOT NULL,
                          tipo_usuario TEXT CHECK (tipo_usuario IN ('ADMIN', 'COMUM'))
+);
+
+CREATE TABLE Cidade (
+                        id UUID PRIMARY KEY,
+                        nome TEXT NOT NULL
 );
 
 CREATE TABLE Atividade (
@@ -20,12 +25,13 @@ CREATE TABLE Vulnerabilidade (
 CREATE TABLE Propriedade (
                              id UUID PRIMARY KEY,
                              nome TEXT NOT NULL,
-                             cidade TEXT NOT NULL,
+                             cidade_id UUID NOT NULL,
                              coordenadas TEXT NOT NULL,
                              proprietario TEXT NOT NULL,
                              telefone_proprietario TEXT NOT NULL,
                              usuario_id UUID,
-                             CONSTRAINT fk_usuario FOREIGN KEY (usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE
+                             CONSTRAINT fk_usuario FOREIGN KEY (usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE,
+                             CONSTRAINT fk_cidade FOREIGN KEY (cidade_id) REFERENCES Cidade(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE propriedade_atividade (
