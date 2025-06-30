@@ -1,5 +1,6 @@
 package br.ufsm.smpp.controller;
 
+import br.ufsm.smpp.model.BuscaDTO;
 import br.ufsm.smpp.model.atividade.Atividade;
 import br.ufsm.smpp.service.AtividadeService;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +21,12 @@ public class AtividadeController {
     private final AtividadeService atividadeService;
 
     @GetMapping
-    public List<Atividade> listarTodas() {
-        return atividadeService.listarTodas();
+    public ResponseEntity<List<BuscaDTO>> listarTodas() {
+        return ResponseEntity.ok(atividadeService.listarTodas());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Atividade> buscarPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(atividadeService.buscarPorId(id));
+    public ResponseEntity<BuscaDTO> buscarPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(atividadeService.buscarDtoPorId(id));
     }
 }

@@ -1,4 +1,4 @@
-package br.ufsm.smpp.model.cidade;
+package br.ufsm.smpp.model.propriedade.cidade;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,6 +1,7 @@
 package br.ufsm.smpp.controller;
 
-import br.ufsm.smpp.model.cidade.Cidade;
+import br.ufsm.smpp.model.BuscaDTO;
+import br.ufsm.smpp.model.propriedade.cidade.Cidade;
 import br.ufsm.smpp.service.CidadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,15 +18,13 @@ public class CidadeController {
     private final CidadeService cidadeService;
 
     @GetMapping
-    public ResponseEntity<List<Cidade>> listarTodas() {
-        List<Cidade> cidades = cidadeService.listarTodas();
-        return ResponseEntity.ok(cidades);
+    public ResponseEntity<List<BuscaDTO>> listarTodas() {
+        return ResponseEntity.ok(cidadeService.listarTodas());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cidade> buscarPorId(@PathVariable UUID id) {
-        Cidade cidade = cidadeService.buscarPorId(id);
-        return ResponseEntity.ok(cidade);
+    public ResponseEntity<BuscaDTO> buscarPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(cidadeService.buscarDtoPorId(id));
     }
 }
 

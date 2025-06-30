@@ -6,12 +6,19 @@ import org.hibernate.annotations.GenericGenerator;
 import jakarta.persistence.Id;
 import java.util.UUID;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+import org.hibernate.annotations.GenericGenerator;
+import java.util.UUID;
+
 @Entity
-@Table(name = "Atividade")
+@Table(name = "atividade")
 @Getter
 @Setter
 @NoArgsConstructor
-@RequiredArgsConstructor
+@ToString
+@EqualsAndHashCode
 public class Atividade {
 
     @Id
@@ -19,9 +26,8 @@ public class Atividade {
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     private UUID id;
 
-    @Column(nullable = false)
-    @NonNull
-    @NotNull
+    @NotBlank
+    @Column(nullable = false, unique = true)
     private String nome;
 }
 

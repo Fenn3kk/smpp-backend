@@ -6,11 +6,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -21,39 +24,43 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private UsuarioRepository usuarioRepo;
+    private final JwtUtil jwtUtil;
+    private final UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        System.out.println("JwtAuthFilter chamado");
+        final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+        final String userEmail;
 
-        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            String email = jwtUtil.extrairEmail(token);
-            Usuario usuario = usuarioRepo.findByEmail(email).orElse(null);
+        jwt = authHeader.substring(7);
+        userEmail = jwtUtil.extrairEmail(jwt);
 
-            if (usuario != null) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                usuario,
-                                null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getTipoUsuario()))
-                        );
+        // Verifica se o usuário já não está autenticado no contexto de segurança
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                // FALTAVA ESSA LINHA:
+            // Se o token for válido, cria a autenticação e a coloca no contexto
+            if (jwtUtil.isTokenValid(jwt, userDetails)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
-
-        chain.doFilter(request, response);
+        filterChain.doFilter(request, response);
     }
 }
-

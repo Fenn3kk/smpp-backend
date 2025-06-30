@@ -1,25 +1,20 @@
-package br.ufsm.smpp.model.vulnerabilidade;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
-import jakarta.persistence.Id;
-import java.util.UUID;
+package br.ufsm.smpp.model.ocorrencia.tipo_ocorrencia;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
+
 import java.util.UUID;
 
 @Entity
-@Table(name = "vulnerabilidade")
+@Table(name = "tipo_ocorrencia")
 @Getter
 @Setter
 @NoArgsConstructor
 @ToString
 @EqualsAndHashCode
-public class Vulnerabilidade {
+public class TipoOcorrencia {
 
     @Id
     @GeneratedValue(generator = "UUID")
@@ -30,4 +25,3 @@ public class Vulnerabilidade {
     @Column(nullable = false, unique = true)
     private String nome;
 }
-

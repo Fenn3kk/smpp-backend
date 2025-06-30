@@ -1,16 +1,20 @@
 package br.ufsm.smpp.service;
 
 import br.ufsm.smpp.model.usuario.Usuario;
+import br.ufsm.smpp.model.usuario.UsuarioDTOs;
 import br.ufsm.smpp.model.usuario.UsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,61 +23,95 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+    // --- MÉTODOS PÚBLICOS (LÓGICA DE NEGÓCIO) ---
+
+    public List<UsuarioDTOs.Response> listarTodos() {
+        return usuarioRepository.findAll().stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public Usuario buscarPorId(UUID id) {
+    public UsuarioDTOs.Response buscarDtoPorId(UUID id, Usuario usuarioLogado) {
+        validarAcesso(id, usuarioLogado);
+        Usuario usuario = buscarEntidadePorId(id);
+        return toResponseDTO(usuario);
+    }
+
+    @Transactional
+    public UsuarioDTOs.Response criarUsuario(UsuarioDTOs.Create dto) {
+        if (usuarioRepository.findByEmail(dto.email()).isPresent()) {
+            throw new IllegalArgumentException("O e-mail informado já está em uso.");
+        }
+        Usuario novoUsuario = new Usuario();
+        novoUsuario.setNome(dto.nome());
+        novoUsuario.setEmail(dto.email());
+        novoUsuario.setTelefone(dto.telefone());
+        novoUsuario.setSenha(passwordEncoder.encode(dto.senha()));
+        novoUsuario.setTipoUsuario(
+                "ADMIN".equalsIgnoreCase(dto.tipoUsuario()) ? Usuario.TipoUsuario.ADMIN : Usuario.TipoUsuario.COMUM
+        );
+
+        Usuario usuarioSalvo = usuarioRepository.save(novoUsuario);
+        return toResponseDTO(usuarioSalvo);
+    }
+
+    @Transactional
+    public UsuarioDTOs.Response atualizarUsuario(UUID id, UsuarioDTOs.Update dto, Usuario usuarioLogado) {
+        validarAcesso(id, usuarioLogado);
+        Usuario usuarioExistente = buscarEntidadePorId(id);
+
+        usuarioExistente.setNome(dto.nome());
+        usuarioExistente.setEmail(dto.email());
+        usuarioExistente.setTelefone(dto.telefone());
+
+        if (dto.novaSenha() != null && !dto.novaSenha().isBlank()) {
+            usuarioExistente.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        }
+
+        // CORREÇÃO: Compara o enum diretamente, em vez de chamar um método inexistente.
+        if (usuarioLogado.getTipoUsuario() == Usuario.TipoUsuario.ADMIN) {
+            usuarioExistente.setTipoUsuario(
+                    "ADMIN".equalsIgnoreCase(dto.tipoUsuario()) ? Usuario.TipoUsuario.ADMIN : Usuario.TipoUsuario.COMUM
+            );
+        }
+
+        Usuario usuarioSalvo = usuarioRepository.save(usuarioExistente);
+        return toResponseDTO(usuarioSalvo);
+    }
+
+    @Transactional
+    public void deletar(UUID id, Usuario usuarioLogado) {
+        validarAcesso(id, usuarioLogado);
+        if (!usuarioRepository.existsById(id)) {
+            throw new EntityNotFoundException("Usuário não encontrado.");
+        }
+        usuarioRepository.deleteById(id);
+    }
+
+    // --- MÉTODOS AUXILIARES (LÓGICA INTERNA) ---
+
+    public Usuario buscarEntidadePorId(UUID id) {
         return usuarioRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado com ID: " + id));
     }
 
-    public Usuario salvar(Usuario usuario) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    private void validarAcesso(UUID idDoAlvo, Usuario usuarioLogado) {
+        // CORREÇÃO: Compara o enum diretamente.
+        boolean ehAdmin = usuarioLogado.getTipoUsuario() == Usuario.TipoUsuario.ADMIN;
+        boolean ehMesmoUsuario = usuarioLogado.getId().equals(idDoAlvo);
 
-        boolean isAdmin = auth != null && auth.isAuthenticated() &&
-                auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        // Se não for admin, força o tipo para COMUM
-        if (!isAdmin) {
-            usuario.setTipoUsuario(Usuario.TipoUsuario.COMUM);
+        if (!ehAdmin && !ehMesmoUsuario) {
+            throw new AccessDeniedException("Acesso negado.");
         }
-
-        usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
-
-        return usuarioRepository.save(usuario);
     }
 
-
-    public Usuario atualizar(UUID id, Usuario usuarioAtualizado) {
-        Usuario existente = buscarPorId(id);
-
-        existente.setNome(usuarioAtualizado.getNome());
-        existente.setEmail(usuarioAtualizado.getEmail());
-        existente.setTelefone(usuarioAtualizado.getTelefone());
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth != null && auth.isAuthenticated() &&
-                auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        // Só permite alterar o tipoUsuario se o logado for admin
-        if (isAdmin) {
-            existente.setTipoUsuario(usuarioAtualizado.getTipoUsuario());
-        }
-
-        if (usuarioAtualizado.getSenha() != null &&
-                !usuarioAtualizado.getSenha().isEmpty() &&
-                !passwordEncoder.matches(usuarioAtualizado.getSenha(), existente.getSenha())) {
-            existente.setSenha(passwordEncoder.encode(usuarioAtualizado.getSenha()));
-        }
-
-        return usuarioRepository.save(existente);
-    }
-
-
-
-    public void deletar(UUID id) {
-        Usuario usuario = buscarPorId(id);
-        usuarioRepository.delete(usuario);
+    private UsuarioDTOs.Response toResponseDTO(Usuario usuario) {
+        return new UsuarioDTOs.Response(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getTelefone(),
+                usuario.getTipoUsuario().name()
+        );
     }
 }

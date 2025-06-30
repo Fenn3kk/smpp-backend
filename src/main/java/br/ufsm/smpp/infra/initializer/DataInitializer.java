@@ -6,14 +6,20 @@ import br.ufsm.smpp.model.atividade.Atividade;
 import br.ufsm.smpp.model.atividade.AtividadeRepository;
 import br.ufsm.smpp.model.vulnerabilidade.Vulnerabilidade;
 import br.ufsm.smpp.model.vulnerabilidade.VulnerabilidadeRepository;
-import br.ufsm.smpp.model.cidade.Cidade;
-import br.ufsm.smpp.model.cidade.CidadeRepository;
+import br.ufsm.smpp.model.propriedade.cidade.Cidade;
+import br.ufsm.smpp.model.propriedade.cidade.CidadeRepository;
+import br.ufsm.smpp.model.incidente.Incidente;
+import br.ufsm.smpp.model.incidente.IncidenteRepository;
+import br.ufsm.smpp.model.ocorrencia.tipo_ocorrencia.TipoOcorrencia;
+import br.ufsm.smpp.model.ocorrencia.tipo_ocorrencia.TipoOcorrenciaRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
@@ -23,90 +29,109 @@ public class DataInitializer {
     private final VulnerabilidadeRepository vulnerabilidadeRepo;
     private final CidadeRepository cidadeRepo;
     private final UsuarioRepository usuarioRepo;
+    private final IncidenteRepository incidenteRepo;
+    private final TipoOcorrenciaRepository tipoOcorrenciaRepo;
     private final PasswordEncoder passwordEncoder;
 
     @PostConstruct
+    @Transactional // Adicionar @Transactional é uma boa prática para operações de escrita em lote.
     public void init() {
+        initAtividades();
+        initVulnerabilidades();
+        initCidades();
+        initIncidentes();
+        initTiposOcorrencia();
+        initAdminUser();
+    }
+
+    private void initAtividades() {
         if (atividadeRepo.count() == 0) {
-            atividadeRepo.saveAll(List.of(
-                    new Atividade("Criação de bovinos"),
-                    new Atividade("Criação de búfalos"),
-                    new Atividade("Criação de equinos"),
-                    new Atividade("Criação de asininos"),
-                    new Atividade("Criação de muares"),
-                    new Atividade("Criação de suínos"),
-                    new Atividade("Criação de caprinos"),
-                    new Atividade("Criação de ovinos"),
-                    new Atividade("Criação de galinhas e similares"),
-                    new Atividade("Criação de codornas"),
-                    new Atividade("Criação de outras aves"),
-                    new Atividade("Criação de coelhos"),
-                    new Atividade("Criação de abelhas"),
-                    new Atividade("Criação de peixes, camarões e moluscos"),
-                    new Atividade("Criação de rãs"),
-                    new Atividade("Criação de bicho-da-seda"),
-                    new Atividade("Pesca"),
-                    new Atividade("Lavoura Temporária"),
-                    new Atividade("Lavoura Permanente"),
-                    new Atividade("Horticultura"),
-                    new Atividade("Extração Vegetal"),
-                    new Atividade("Floricultura"),
-                    new Atividade("Silvicultura e seus produtos"),
-                    new Atividade("Agroindústria Vegetal"),
-                    new Atividade("Agroindústria Animal"),
-                    new Atividade("Atividade de turismo rural"),
-                    new Atividade("Exploração mineral"),
-                    new Atividade("Atividades não agrícolas")
-            ));
+            List<Atividade> atividades = Stream.of(
+                    "Criação de bovinos", "Criação de búfalos", "Criação de equinos",
+                    "Criação de asininos", "Criação de muares", "Criação de suínos",
+                    "Criação de caprinos", "Criação de ovinos", "Criação de galinhas e similares",
+                    "Criação de codornas", "Criação de outras aves", "Criação de coelhos",
+                    "Criação de abelhas", "Criação de peixes, camarões e moluscos",
+                    "Criação de rãs", "Criação de bicho-da-seda", "Pesca", "Lavoura Temporária",
+                    "Lavoura Permanente", "Horticultura", "Extração Vegetal", "Floricultura",
+                    "Silvicultura e seus produtos", "Agroindústria Vegetal", "Agroindústria Animal",
+                    "Atividade de turismo rural", "Exploração mineral", "Atividades não agrícolas"
+            ).map(nome -> {
+                Atividade atividade = new Atividade();
+                atividade.setNome(nome);
+                return atividade;
+            }).toList();
+            atividadeRepo.saveAll(atividades);
         }
+    }
 
+    private void initVulnerabilidades() {
         if (vulnerabilidadeRepo.count() == 0) {
-            vulnerabilidadeRepo.saveAll(List.of(
-                    new Vulnerabilidade("Área sujeitas a deslizamentos"),
-                    new Vulnerabilidade("Área sujeitas a alagamento"),
-                    new Vulnerabilidade("Área sujeita a secas"),
-                    new Vulnerabilidade("Acesso por pontes sujeitas a inundações"),
-                    new Vulnerabilidade("Acesso por estradas sujeitas a inundações")
-            ));
+            List<Vulnerabilidade> vulnerabilidades = Stream.of(
+                    "Área sujeitas a deslizamentos", "Área sujeitas a alagamento",
+                    "Área sujeita a secas", "Acesso por pontes sujeitas a inundações",
+                    "Acesso por estradas sujeitas a inundações"
+            ).map(nome -> {
+                Vulnerabilidade vulnerabilidade = new Vulnerabilidade();
+                vulnerabilidade.setNome(nome);
+                return vulnerabilidade;
+            }).toList();
+            vulnerabilidadeRepo.saveAll(vulnerabilidades);
         }
+    }
 
+    private void initCidades() {
         if (cidadeRepo.count() == 0) {
-            cidadeRepo.saveAll(List.of(
-                    new Cidade("Agudo"),
-                    new Cidade("Cacequi"),
-                    new Cidade("Cachoeira do Sul"),
-                    new Cidade("Capão do Cipó"),
-                    new Cidade("Cerro Branco"),
-                    new Cidade("Dilermando de Aguiar"),
-                    new Cidade("Dona Francisca"),
-                    new Cidade("Faxinal do Soturno"),
-                    new Cidade("Itaara"),
-                    new Cidade("Ivorá"),
-                    new Cidade("Jaguari"),
-                    new Cidade("Júlio de Castilhos"),
-                    new Cidade("Mata"),
-                    new Cidade("Nova Esperança do Sul"),
-                    new Cidade("Nova Palma"),
-                    new Cidade("Novo Cabrais"),
-                    new Cidade("Paraíso do Sul"),
-                    new Cidade("Santa Maria"),
-                    new Cidade("Santiago"),
-                    new Cidade("São Francisco de Assis"),
-                    new Cidade("São João do Polêsine"),
-                    new Cidade("São Martinho da Serra"),
-                    new Cidade("São Sepé"),
-                    new Cidade("São Vicente do Sul"),
-                    new Cidade("Silveira Martins"),
-                    new Cidade("Unistalda")
-            ));
+            List<Cidade> cidades = Stream.of(
+                    "Agudo", "Cacequi", "Cachoeira do Sul", "Capão do Cipó", "Cerro Branco",
+                    "Dilermando de Aguiar", "Dona Francisca", "Faxinal do Soturno", "Itaara",
+                    "Ivorá", "Jaguari", "Júlio de Castilhos", "Mata", "Nova Esperança do Sul",
+                    "Nova Palma", "Novo Cabrais", "Paraíso do Sul", "Santa Maria", "Santiago",
+                    "São Francisco de Assis", "São João do Polêsine", "São Martinho da Serra",
+                    "São Sepé", "São Vicente do Sul", "Silveira Martins", "Unistalda"
+            ).map(nome -> {
+                Cidade cidade = new Cidade();
+                cidade.setNome(nome);
+                return cidade;
+            }).toList();
+            cidadeRepo.saveAll(cidades);
         }
+    }
 
+    private void initIncidentes() {
+        if (incidenteRepo.count() == 0) {
+            List<Incidente> incidentes = Stream.of(
+                    "Perda de animais", "Perda de equipamentos", "Perda de fertilizantes",
+                    "Perda de lavoura", "Dano estrutural"
+            ).map(nome -> {
+                Incidente incidente = new Incidente();
+                incidente.setNome(nome);
+                return incidente;
+            }).toList();
+            incidenteRepo.saveAll(incidentes);
+        }
+    }
+
+    private void initTiposOcorrencia() {
+        if (tipoOcorrenciaRepo.count() == 0) {
+            List<TipoOcorrencia> tipos = Stream.of(
+                    "Alagamento", "Seca", "Tempestade", "Queimada"
+            ).map(nome -> {
+                TipoOcorrencia tipo = new TipoOcorrencia();
+                tipo.setNome(nome);
+                return tipo;
+            }).toList();
+            tipoOcorrenciaRepo.saveAll(tipos);
+        }
+    }
+
+    private void initAdminUser() {
         if (usuarioRepo.count() == 0) {
             Usuario admin = new Usuario();
             admin.setNome("ADMINISTRADOR");
             admin.setEmail("admin@email.com");
             admin.setTelefone("00000000000");
-            admin.setSenha(passwordEncoder.encode("admin060504")); // senha já codificada
+            admin.setSenha(passwordEncoder.encode("admin060504"));
             admin.setTipoUsuario(Usuario.TipoUsuario.ADMIN);
             usuarioRepo.save(admin);
         }
