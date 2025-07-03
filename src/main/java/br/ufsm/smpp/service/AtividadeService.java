@@ -1,12 +1,10 @@
 package br.ufsm.smpp.service;
-
-import br.ufsm.smpp.model.BuscaDTO;
-import br.ufsm.smpp.model.atividade.Atividade;
-import br.ufsm.smpp.model.atividade.AtividadeRepository;
+import br.ufsm.smpp.dto.LookupDTO;
+import br.ufsm.smpp.model.Atividade;
+import br.ufsm.smpp.repository.AtividadeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +14,7 @@ public class AtividadeService {
 
     private final AtividadeRepository atividadeRepository;
 
-    public List<BuscaDTO> listarTodas() {
+    public List<LookupDTO> listarTodas() {
         return atividadeRepository.findAll().stream()
                 .map(this::toDto)
                 .toList();
@@ -27,11 +25,11 @@ public class AtividadeService {
                 .orElseThrow(() -> new EntityNotFoundException("Atividade não encontrada com ID: " + id));
     }
 
-    public BuscaDTO buscarDtoPorId(UUID id) {
+    public LookupDTO buscarDtoPorId(UUID id) {
         return toDto(buscarEntidadePorId(id));
     }
 
-    private BuscaDTO toDto(Atividade atividade) {
-        return new BuscaDTO(atividade.getId(), atividade.getNome());
+    private LookupDTO toDto(Atividade atividade) {
+        return new LookupDTO(atividade.getId(), atividade.getNome());
     }
 }

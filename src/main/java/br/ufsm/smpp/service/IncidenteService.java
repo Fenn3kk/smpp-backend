@@ -1,15 +1,12 @@
 package br.ufsm.smpp.service;
-
-import br.ufsm.smpp.model.BuscaDTO;
-import br.ufsm.smpp.model.incidente.Incidente;
-import br.ufsm.smpp.model.incidente.IncidenteRepository;
+import br.ufsm.smpp.dto.LookupDTO;
+import br.ufsm.smpp.model.Incidente;
+import br.ufsm.smpp.repository.IncidenteRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -18,7 +15,7 @@ public class IncidenteService {
 
     private final IncidenteRepository incidenteRepository;
 
-    public List<BuscaDTO> listarTodos() {
+    public List<LookupDTO> listarTodos() {
         return incidenteRepository.findAll().stream().map(this::toDto).toList();
     }
 
@@ -27,12 +24,12 @@ public class IncidenteService {
                 .orElseThrow(() -> new EntityNotFoundException("Incidente não encontrado com ID: " + id));
     }
 
-    public BuscaDTO buscarDtoPorId(UUID id) {
+    public LookupDTO buscarDtoPorId(UUID id) {
         return toDto(buscarEntidadePorId(id));
     }
 
     @Transactional
-    public BuscaDTO salvar(BuscaDTO dto) {
+    public LookupDTO salvar(LookupDTO dto) {
         Incidente incidente = new Incidente();
         incidente.setNome(dto.nome());
         return toDto(incidenteRepository.save(incidente));
@@ -46,8 +43,8 @@ public class IncidenteService {
         incidenteRepository.deleteById(id);
     }
 
-    private BuscaDTO toDto(Incidente incidente) {
-        return new BuscaDTO(incidente.getId(), incidente.getNome());
+    private LookupDTO toDto(Incidente incidente) {
+        return new LookupDTO(incidente.getId(), incidente.getNome());
     }
 }
 

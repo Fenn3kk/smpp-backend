@@ -1,10 +1,8 @@
 package br.ufsm.smpp.service;
-
-import br.ufsm.smpp.model.vulnerabilidade.Vulnerabilidade;
-import br.ufsm.smpp.model.vulnerabilidade.VulnerabilidadeRepository;
+import br.ufsm.smpp.model.Vulnerabilidade;
+import br.ufsm.smpp.repository.VulnerabilidadeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.UUID;
 

@@ -1,17 +1,13 @@
 package br.ufsm.smpp.service;
-
-import br.ufsm.smpp.model.usuario.Usuario;
-import br.ufsm.smpp.model.usuario.UsuarioDTOs;
-import br.ufsm.smpp.model.usuario.UsuarioRepository;
+import br.ufsm.smpp.model.Usuario;
+import br.ufsm.smpp.dto.UsuarioDTOs;
+import br.ufsm.smpp.repository.UsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,8 +18,6 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
-
-    // --- MÉTODOS PÚBLICOS (LÓGICA DE NEGÓCIO) ---
 
     public List<UsuarioDTOs.Response> listarTodos() {
         return usuarioRepository.findAll().stream()
@@ -65,30 +59,22 @@ public class UsuarioService {
         usuarioExistente.setTelefone(dto.telefone());
 
         if (dto.novaSenha() != null && !dto.novaSenha().isBlank()) {
+            if (dto.senhaAtual() == null || !passwordEncoder.matches(dto.senhaAtual(), usuarioExistente.getSenha())) {
+                throw new IllegalArgumentException("Credenciais inválidas. A senha atual está incorreta.");
+            }
             usuarioExistente.setSenha(passwordEncoder.encode(dto.novaSenha()));
         }
 
-        // CORREÇÃO: Compara o enum diretamente, em vez de chamar um método inexistente.
         if (usuarioLogado.getTipoUsuario() == Usuario.TipoUsuario.ADMIN) {
-            usuarioExistente.setTipoUsuario(
-                    "ADMIN".equalsIgnoreCase(dto.tipoUsuario()) ? Usuario.TipoUsuario.ADMIN : Usuario.TipoUsuario.COMUM
-            );
+            if (dto.tipoUsuario() != null && !dto.tipoUsuario().isBlank()) {
+                usuarioExistente.setTipoUsuario(
+                        "ADMIN".equalsIgnoreCase(dto.tipoUsuario()) ? Usuario.TipoUsuario.ADMIN : Usuario.TipoUsuario.COMUM
+                );
+            }
         }
-
         Usuario usuarioSalvo = usuarioRepository.save(usuarioExistente);
         return toResponseDTO(usuarioSalvo);
     }
-
-    @Transactional
-    public void deletar(UUID id, Usuario usuarioLogado) {
-        validarAcesso(id, usuarioLogado);
-        if (!usuarioRepository.existsById(id)) {
-            throw new EntityNotFoundException("Usuário não encontrado.");
-        }
-        usuarioRepository.deleteById(id);
-    }
-
-    // --- MÉTODOS AUXILIARES (LÓGICA INTERNA) ---
 
     public Usuario buscarEntidadePorId(UUID id) {
         return usuarioRepository.findById(id)
@@ -103,6 +89,17 @@ public class UsuarioService {
         if (!ehAdmin && !ehMesmoUsuario) {
             throw new AccessDeniedException("Acesso negado.");
         }
+    }
+
+    @Transactional
+    public void deletar(UUID id, Usuario usuarioLogado) {
+        validarAcesso(id, usuarioLogado);
+
+        if (!usuarioRepository.existsById(id)) {
+            throw new EntityNotFoundException("Usuário não encontrado.");
+        }
+
+        usuarioRepository.deleteById(id);
     }
 
     private UsuarioDTOs.Response toResponseDTO(Usuario usuario) {

@@ -1,11 +1,9 @@
 package br.ufsm.smpp.controller;
-
-import br.ufsm.smpp.model.vulnerabilidade.Vulnerabilidade;
+import br.ufsm.smpp.model.Vulnerabilidade;
 import br.ufsm.smpp.service.VulnerabilidadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 

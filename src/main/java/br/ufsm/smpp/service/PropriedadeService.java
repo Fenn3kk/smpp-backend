@@ -1,17 +1,18 @@
 package br.ufsm.smpp.service;
-
-import br.ufsm.smpp.model.propriedade.cidade.Cidade;
-import br.ufsm.smpp.model.propriedade.Propriedade;
-import br.ufsm.smpp.model.propriedade.PropriedadeDTO;
-import br.ufsm.smpp.model.propriedade.PropriedadeRepository;
-import br.ufsm.smpp.model.usuario.Usuario;
-import br.ufsm.smpp.model.vulnerabilidade.Vulnerabilidade;
+import br.ufsm.smpp.dto.LookupDTO;
+import br.ufsm.smpp.model.Cidade;
+import br.ufsm.smpp.model.Propriedade;
+import br.ufsm.smpp.dto.PropriedadeDTOs;
+import br.ufsm.smpp.repository.PropriedadeRepository;
+import br.ufsm.smpp.model.Usuario;
+import br.ufsm.smpp.model.Vulnerabilidade;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import br.ufsm.smpp.model.atividade.Atividade;
+import br.ufsm.smpp.model.Atividade;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,83 +26,99 @@ public class PropriedadeService {
     private final VulnerabilidadeService vulnerabilidadeService;
     private final CidadeService cidadeService;
 
-    public List<Propriedade> listarPorUsuario(UUID usuarioId) {
-        return propriedadeRepository.findByUsuarioId(usuarioId);
+    public List<PropriedadeDTOs.Response> listarPorUsuario(UUID usuarioId) {
+        return propriedadeRepository.findByUsuarioId(usuarioId).stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
     }
 
-    public Propriedade buscarPorId(UUID id) {
-        return propriedadeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com o ID: " + id));
+    public List<PropriedadeDTOs.Response> listarTodas() {
+        return propriedadeRepository.findAll(Sort.by("nome")).stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public PropriedadeDTOs.Response buscarDtoPorId(UUID id) {
+        return toResponseDto(buscarEntidadePorId(id));
     }
 
     @Transactional
-    public Propriedade criarPropriedade(PropriedadeDTO dto, Usuario usuarioLogado) {
+    public PropriedadeDTOs.Response criarPropriedade(PropriedadeDTOs.Request dto, Usuario usuarioLogado) {
         Propriedade propriedade = new Propriedade();
-        // Mapeia os dados do DTO para a nova entidade
-        DtoParaEntidade(propriedade, dto, usuarioLogado);
-        return propriedadeRepository.save(propriedade);
+        mapearDtoParaEntidade(propriedade, dto, usuarioLogado);
+        Propriedade propriedadeSalva = propriedadeRepository.save(propriedade);
+        return toResponseDto(propriedadeSalva);
     }
 
     @Transactional
-    public Propriedade atualizarPropriedade(UUID id, PropriedadeDTO dto, Usuario usuarioLogado) {
-        // 1. Busca a entidade existente no banco
-        Propriedade propriedadeExistente = buscarPorId(id);
+    public PropriedadeDTOs.Response atualizarPropriedade(UUID id, PropriedadeDTOs.Request dto, Usuario usuarioLogado) {
+        Propriedade propriedadeExistente = buscarEntidadePorId(id);
+        validarPermissao(propriedadeExistente, usuarioLogado);
 
-        // 2. [Opcional mas recomendado] Verifica se o usuário logado pode editar esta propriedade
-        if (!propriedadeExistente.getUsuario().getId().equals(usuarioLogado.getId())) {
-            throw new SecurityException("Usuário não autorizado a editar esta propriedade.");
-        }
-
-        // 3. Mapeia os novos dados do DTO para a entidade existente
-        DtoParaEntidade(propriedadeExistente, dto, usuarioLogado);
-
-        // 4. Salva a entidade atualizada
-        return propriedadeRepository.save(propriedadeExistente);
+        mapearDtoParaEntidade(propriedadeExistente, dto, usuarioLogado);
+        Propriedade propriedadeAtualizada = propriedadeRepository.save(propriedadeExistente);
+        return toResponseDto(propriedadeAtualizada);
     }
 
     @Transactional
     public void deletar(UUID id, Usuario usuarioLogado) {
-        Propriedade propriedade = buscarPorId(id);
-
-        // Verifica a permissão antes de deletar
-        if (!propriedade.getUsuario().getId().equals(usuarioLogado.getId())) {
-            throw new SecurityException("Usuário não autorizado a deletar esta propriedade.");
-        }
-
+        Propriedade propriedade = buscarEntidadePorId(id);
+        validarPermissao(propriedade, usuarioLogado);
         propriedadeRepository.delete(propriedade);
     }
 
-    /**
-     * Método auxiliar centralizado para mapear dados de um DTO para uma entidade Propriedade.
-     * Isso evita duplicação de código entre os métodos de criar e atualizar.
-     */
-    private void DtoParaEntidade(Propriedade propriedade, PropriedadeDTO dto, Usuario usuario) {
-        Cidade cidade = cidadeService.buscarPorId(dto.getCidadeId());
+    private void mapearDtoParaEntidade(Propriedade propriedade, PropriedadeDTOs.Request dto, Usuario usuario) {
+        // Busca as entidades relacionadas usando os serviços
+        Cidade cidade = cidadeService.buscarEntidadePorId(dto.cidadeId());
 
-        List<Atividade> atividades = dto.getAtividades().stream()
-                .map(atividadeService::buscarPorId)
+        List<Atividade> atividades = dto.atividades().stream()
+                .map(atividadeService::buscarEntidadePorId)
                 .collect(Collectors.toList());
 
-        List<Vulnerabilidade> vulnerabilidades = dto.getVulnerabilidades().stream()
+        List<Vulnerabilidade> vulnerabilidades = dto.vulnerabilidades() != null
+                ? dto.vulnerabilidades().stream()
                 .map(vulnerabilidadeService::buscarPorId)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+                : List.of();
 
-        propriedade.setNome(dto.getNome());
+        propriedade.setNome(dto.nome());
         propriedade.setCidade(cidade);
-        propriedade.setCoordenadas(dto.getCoordenadas());
+        propriedade.setCoordenadas(dto.coordenadas());
         propriedade.setAtividades(atividades);
         propriedade.setVulnerabilidades(vulnerabilidades);
-
-        // Define o usuário que está realizando a operação
         propriedade.setUsuario(usuario);
 
-        // Lógica para definir o proprietário: se o DTO não informar, usa o usuário logado.
-        if (dto.getProprietario() == null || dto.getProprietario().isBlank()) {
+        if (dto.proprietario() == null || dto.proprietario().isBlank()) {
             propriedade.setProprietario(usuario.getNome());
             propriedade.setTelefoneProprietario(usuario.getTelefone());
         } else {
-            propriedade.setProprietario(dto.getProprietario());
-            propriedade.setTelefoneProprietario(dto.getTelefoneProprietario());
+            propriedade.setProprietario(dto.proprietario());
+            propriedade.setTelefoneProprietario(dto.telefoneProprietario());
         }
+    }
+
+    public Propriedade buscarEntidadePorId(UUID id) {
+        return propriedadeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Propriedade não encontrada com o ID: " + id));
+    }
+
+    private void validarPermissao(Propriedade propriedade, Usuario usuarioLogado) {
+        if (!propriedade.getUsuario().getId().equals(usuarioLogado.getId())) {
+            throw new AccessDeniedException("Usuário não autorizado a modificar esta propriedade.");
+        }
+    }
+
+    private PropriedadeDTOs.Response toResponseDto(Propriedade p) {
+        return new PropriedadeDTOs.Response(
+                p.getId(),
+                p.getNome(),
+                new LookupDTO(p.getCidade().getId(), p.getCidade().getNome()),
+                p.getCoordenadas(),
+                p.getProprietario(),
+                p.getTelefoneProprietario(),
+                p.getAtividades().stream().map(a -> new LookupDTO(a.getId(), a.getNome())).collect(Collectors.toList()),
+                p.getVulnerabilidades().stream().map(v -> new LookupDTO(v.getId(), v.getNome())).collect(Collectors.toList()),
+                new PropriedadeDTOs.SimpleUserDTO(p.getUsuario().getId(), p.getUsuario().getNome())
+        );
     }
 }

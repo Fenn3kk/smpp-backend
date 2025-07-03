@@ -1,20 +1,16 @@
 package br.ufsm.smpp.controller;
 
-import br.ufsm.smpp.model.ocorrencia.Ocorrencia;
-import br.ufsm.smpp.model.ocorrencia.OcorrenciaDTO;
-import br.ufsm.smpp.model.propriedade.Propriedade;
-import br.ufsm.smpp.model.propriedade.PropriedadeDTO;
-import br.ufsm.smpp.model.usuario.Usuario;
+import br.ufsm.smpp.dto.OcorrenciaDTOs;
+import br.ufsm.smpp.model.Ocorrencia;
 import br.ufsm.smpp.service.OcorrenciaService;
 import br.ufsm.smpp.service.PropriedadeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -25,36 +21,35 @@ import java.util.UUID;
 public class OcorrenciaController {
 
     private final OcorrenciaService ocorrenciaService;
-    private final PropriedadeService propriedadeService;
 
-    @GetMapping("/propriedade/{id}")
-    public List<Ocorrencia> listarPorPropriedade(@PathVariable UUID id) {
-        return ocorrenciaService.listarPorPropriedade(id);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Ocorrencia> buscarPorId(@PathVariable UUID id) {
-        return ocorrenciaService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/propriedade/{propriedadeId}")
+    public ResponseEntity<List<OcorrenciaDTOs.Response>> listarPorPropriedade(@PathVariable UUID propriedadeId) {
+        List<OcorrenciaDTOs.Response> ocorrencias = ocorrenciaService.listarPorPropriedade(propriedadeId);
+        return ResponseEntity.ok(ocorrencias);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Ocorrencia> salvar(
-            // CORREÇÃO: Usa @RequestPart para o JSON e para os arquivos
-            @RequestPart("ocorrenciaDto") OcorrenciaDTO dto,
-            @RequestPart(name = "fotos", required = false) List<MultipartFile> fotos
-    ) throws IOException {
-        Ocorrencia ocorrenciaSalva = ocorrenciaService.salvar(dto, fotos);
+    public ResponseEntity<OcorrenciaDTOs.Response> salvar(
+            @RequestPart("ocorrenciaDto") @Valid OcorrenciaDTOs.Request dto,
+            @RequestPart(name = "fotos", required = false) List<MultipartFile> fotos) throws IOException {
 
-        // MELHORIA: Retorna 201 Created, que é o status correto para criação.
+        OcorrenciaDTOs.Response ocorrenciaSalva = ocorrenciaService.salvarComFotos(dto, fotos);
         return ResponseEntity.status(HttpStatus.CREATED).body(ocorrenciaSalva);
     }
 
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<OcorrenciaDTOs.Response> atualizar(
+            @PathVariable UUID id,
+            @RequestPart("ocorrenciaUpdateDto") @Valid OcorrenciaDTOs.UpdateRequest dto,
+            @RequestPart(name = "novasFotos", required = false) List<MultipartFile> novasFotos) throws IOException {
+
+        OcorrenciaDTOs.Response atualizada = ocorrenciaService.updateOcorrencia(id, dto, novasFotos);
+        return ResponseEntity.ok(atualizada);
+    }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluir(@PathVariable UUID id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excluirOcorrencia(@PathVariable UUID id) {
         ocorrenciaService.excluir(id);
-        return ResponseEntity.noContent().build();
     }
 }
