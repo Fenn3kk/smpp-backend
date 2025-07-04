@@ -1,4 +1,5 @@
 package br.ufsm.smpp.config;
+
 import br.ufsm.smpp.model.Usuario;
 import br.ufsm.smpp.repository.UsuarioRepository;
 import br.ufsm.smpp.model.Atividade;
@@ -20,20 +21,37 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Componente responsável por popular o banco de dados com dados iniciais
+ * na inicialização da aplicação.
+ * Garante que tabelas de domínio (como cidades, atividades, etc.) e
+ * um usuário administrador padrão sejam criados se ainda não existirem.
+ */
 @Component
 @RequiredArgsConstructor
 public class DataInitializer {
 
+    // Repositórios para interagir com as respectivas tabelas no banco de dados.
     private final AtividadeRepository atividadeRepo;
     private final VulnerabilidadeRepository vulnerabilidadeRepo;
     private final CidadeRepository cidadeRepo;
     private final UsuarioRepository usuarioRepo;
     private final IncidenteRepository incidenteRepo;
     private final TipoOcorrenciaRepository tipoOcorrenciaRepo;
+
+    /**
+     * Codificador de senhas para criptografar a senha do usuário administrador.
+     */
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Método executado após a injeção de dependências do Spring.
+     * A anotação {@code @Transactional} garante que todas as operações de banco de dados
+     * dentro deste método sejam executadas em uma única transação. Se qualquer
+     * uma falhar, todas serão revertidas.
+     */
     @PostConstruct
-    @Transactional // Adicionar @Transactional é uma boa prática para operações de escrita em lote.
+    @Transactional
     public void init() {
         initAtividades();
         initVulnerabilidades();
@@ -43,6 +61,10 @@ public class DataInitializer {
         initAdminUser();
     }
 
+    /**
+     * Inicializa a tabela de 'Atividades' com uma lista predefinida.
+     * A operação só é executada se a tabela estiver vazia.
+     */
     private void initAtividades() {
         if (atividadeRepo.count() == 0) {
             List<Atividade> atividades = Stream.of(
@@ -64,6 +86,10 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Inicializa a tabela de 'Vulnerabilidades' com uma lista predefinida.
+     * A operação só é executada se a tabela estiver vazia.
+     */
     private void initVulnerabilidades() {
         if (vulnerabilidadeRepo.count() == 0) {
             List<Vulnerabilidade> vulnerabilidades = Stream.of(
@@ -79,6 +105,10 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Inicializa a tabela de 'Cidades' com uma lista predefinida.
+     * A operação só é executada se a tabela estiver vazia.
+     */
     private void initCidades() {
         if (cidadeRepo.count() == 0) {
             List<Cidade> cidades = Stream.of(
@@ -97,6 +127,10 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Inicializa a tabela de 'Incidentes' com uma lista predefinida.
+     * A operação só é executada se a tabela estiver vazia.
+     */
     private void initIncidentes() {
         if (incidenteRepo.count() == 0) {
             List<Incidente> incidentes = Stream.of(
@@ -111,6 +145,10 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Inicializa a tabela de 'Tipos de Ocorrência' com uma lista predefinida.
+     * A operação só é executada se a tabela estiver vazia.
+     */
     private void initTiposOcorrencia() {
         if (tipoOcorrenciaRepo.count() == 0) {
             List<TipoOcorrencia> tipos = Stream.of(
@@ -124,6 +162,10 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Cria um usuário administrador padrão se nenhum usuário existir no banco de dados.
+     * A senha é criptografada antes de ser salva.
+     */
     private void initAdminUser() {
         if (usuarioRepo.count() == 0) {
             Usuario admin = new Usuario();

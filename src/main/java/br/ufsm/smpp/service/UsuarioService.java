@@ -2,9 +2,11 @@ package br.ufsm.smpp.service;
 import br.ufsm.smpp.model.Usuario;
 import br.ufsm.smpp.dto.UsuarioDTOs;
 import br.ufsm.smpp.repository.UsuarioRepository;
+import br.ufsm.smpp.security.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.token.TokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     public List<UsuarioDTOs.Response> listarTodos() {
         return usuarioRepository.findAll().stream()
@@ -50,7 +53,8 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioDTOs.Response atualizarUsuario(UUID id, UsuarioDTOs.Update dto, Usuario usuarioLogado) {
+    // 3. O método agora retorna 'UpdateResponse', que contém o usuário e o novo token.
+    public UsuarioDTOs.UpdateResponse atualizarUsuario(UUID id, UsuarioDTOs.Update dto, Usuario usuarioLogado) {
         validarAcesso(id, usuarioLogado);
         Usuario usuarioExistente = buscarEntidadePorId(id);
 
@@ -72,23 +76,14 @@ public class UsuarioService {
                 );
             }
         }
+
         Usuario usuarioSalvo = usuarioRepository.save(usuarioExistente);
-        return toResponseDTO(usuarioSalvo);
-    }
 
-    public Usuario buscarEntidadePorId(UUID id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado com ID: " + id));
-    }
+        // 4. Gera um novo token JWT com base nos dados atualizados do usuário.
+        String novoToken = jwtUtil.gerarToken(usuarioSalvo);
 
-    private void validarAcesso(UUID idDoAlvo, Usuario usuarioLogado) {
-        // CORREÇÃO: Compara o enum diretamente.
-        boolean ehAdmin = usuarioLogado.getTipoUsuario() == Usuario.TipoUsuario.ADMIN;
-        boolean ehMesmoUsuario = usuarioLogado.getId().equals(idDoAlvo);
-
-        if (!ehAdmin && !ehMesmoUsuario) {
-            throw new AccessDeniedException("Acesso negado.");
-        }
+        // 5. Retorna uma nova resposta contendo o DTO do usuário e o novo token.
+        return new UsuarioDTOs.UpdateResponse(toResponseDTO(usuarioSalvo), novoToken);
     }
 
     @Transactional
@@ -100,6 +95,20 @@ public class UsuarioService {
         }
 
         usuarioRepository.deleteById(id);
+    }
+
+    public Usuario buscarEntidadePorId(UUID id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado com ID: " + id));
+    }
+
+    private void validarAcesso(UUID idDoAlvo, Usuario usuarioLogado) {
+        boolean ehAdmin = usuarioLogado.getTipoUsuario() == Usuario.TipoUsuario.ADMIN;
+        boolean ehMesmoUsuario = usuarioLogado.getId().equals(idDoAlvo);
+
+        if (!ehAdmin && !ehMesmoUsuario) {
+            throw new AccessDeniedException("Acesso negado.");
+        }
     }
 
     private UsuarioDTOs.Response toResponseDTO(Usuario usuario) {

@@ -41,12 +41,13 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioDTOs.Response> atualizar(
-            @PathVariable UUID id,
-            @RequestBody @Valid UsuarioDTOs.Update dto,
-            @AuthenticationPrincipal Usuario usuarioLogado) {
-        UsuarioDTOs.Response usuarioAtualizado = usuarioService.atualizarUsuario(id, dto, usuarioLogado);
-        return ResponseEntity.ok(usuarioAtualizado);
+    public ResponseEntity<UsuarioDTOs.UpdateResponse> atualizarUsuario( // <--- MUDANÇA 1: Tipo de retorno
+                                                                        @PathVariable UUID id,
+                                                                        @RequestBody @Valid UsuarioDTOs.Update dto,
+                                                                        @AuthenticationPrincipal Usuario usuarioLogado
+    ) {
+        UsuarioDTOs.UpdateResponse resposta = usuarioService.atualizarUsuario(id, dto, usuarioLogado); // <--- MUDANÇA 2: Variável
+        return ResponseEntity.ok(resposta);
     }
 
     @DeleteMapping("/{id}")
